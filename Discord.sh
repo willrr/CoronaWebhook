@@ -5,8 +5,6 @@ if [ -z $DISCORD_WEBHOOK ]; then
 	exit 1
 fi
 
-node /home/willrr/app.js
-
 function fetchData {
 	query=$1
 	values=$2
