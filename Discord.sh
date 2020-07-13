@@ -46,11 +46,11 @@ function attempt {
 	time="${temp%}"
 	time="${time#}"
 	
-	conInc="$(($con-$con2))"
-	deathInc="$(($death-$death2))"
+	conInc=$(($con-$con2))
+	deathInc=$(($death-$death2))
 	
-	conInc2="$(($con-$con3))"
-	deathInc2="$(($death-$death3))"
+	conInc2=$(($con-$con3))
+	deathInc2=$(($death-$death3))
 	
 	conPer=$(awk -v t1="${con2}" -v t2="${con}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
 	deathPer=$(awk -v t1="${death2}" -v t2="${death}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
