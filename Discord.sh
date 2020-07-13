@@ -43,8 +43,8 @@ function attempt {
 	death=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC' 0 1)
 	death2=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 3d GROUP BY time(24h) fill(null) ORDER BY time DESC' 1 1)
 	death3=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 9d GROUP BY time(24h) fill(null) ORDER BY time DESC' 7 1)
-	tim="${temp%}"
-	tim="${tim#}"
+	time="${temp%}"
+	time="${time#}"
 	
 	conInc="$(($con-$con2))"
 	deathInc="$(($death-$death2))"
@@ -52,13 +52,13 @@ function attempt {
 	conInc2="$(($con-$con3))"
 	deathInc2="$(($death-$death3))"
 	
-	conPer=`ps -ef | grep "port 10 -" | grep -v "grep port 10 -" | awk -v t1="$con2" -v t2="$con" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}'`
-	deathPer=`ps -ef | grep "port 10 -" | grep -v "grep port 10 -" | awk -v t1="$death2" -v t2="$death" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}'`
+	conPer=$(awk -v t1="${con2}" -v t2="${con}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
+	deathPer=$(awk -v t1="${death2}" -v t2="${death}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
 	
-	conPer2=`ps -ef | grep "port 10 -" | grep -v "grep port 10 -" | awk -v t1="$con3" -v t2="$con" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}'`
-	deathPer2=`ps -ef | grep "port 10 -" | grep -v "grep port 10 -" | awk -v t1="$death3" -v t2="$death" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}'`
+	conPer2=$(awk -v t1="${con3}" -v t2="${con}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
+	deathPer2=$(awk -v t1="${death3}" -v t2="${death}" 'BEGIN{print (t2-t1)/((t2+t1)/2) * 100}')
 	
-	postToDiscord "The Latest UK Data is: Total contracted: ${con}. Deaths: ${death}. Last updated: ${tim}"
+	postToDiscord "The Latest UK Data is: Total contracted: ${con}. Deaths: ${death}. Last updated: ${time}"
 	postToDiscord "Cases since yesterday: ${conInc} (Percentage Increase: ${conPer}%). Cases since 7 days ago: ${conInc2} (Percentage Increase: ${conPer2}%)."
 	postToDiscord "Deaths since yesterday: ${deathInc} (Percentage Increase: ${deathPer}%). Deaths since 7 days ago: ${deathInc2} (Percentage Increase: ${deathPer2}%)."
 }
