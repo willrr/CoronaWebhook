@@ -1,15 +1,23 @@
 #!/bin/bash
-
 if [ -z $DISCORD_WEBHOOK ]; then
-	echo "$DISCORD_WEBHOOK not set, cannot continue"
+	echo "DISCORD_WEBHOOK not set, cannot continue"
 	exit 1
 fi
 
+basedir=$(dirname $0)
+
+if [ ! -d ${basedir}/InfluxCovid ]; then
+	git clone https://github.com/smartcuc/COVID-19.git ${basedir}/InfluxCovid
+	pushd ${basedir}/InfluxCovid
+	npm install
+	popd
+fi
+
 function fetchData {
-	query=$1
+	query="q=$1"
 	values=$2
 	nth=$3
-	curl -s 'http://localhost:8086/query?pretty=true' --data-urlencode "db=covid19" --data-urlencode "q=${query}" | jq ".results[0].series[0].values[${values}] | nth(${nth})"
+	curl -s 'http://localhost:8086/query?pretty=true' --data-urlencode "db=covid19" --data-urlencode "$query" | jq ".results[0].series[0].values[${values}] | nth(${nth})"
 }
 
 function postToDiscord {
@@ -22,8 +30,9 @@ function attempt {
 	if [ -z "$1" ]; then
 		attemptno=0
 	fi
-	node /home/willrr/app.js
-	con=$(fetchData 'SELECT sum("Confirmed") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC' 0 1)
+	node $basedir/InfluxCovid/appNew.js
+	con=$(fetchData "SELECT sum(\"Confirmed\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC" 1 1)
+
 	if [ "${con}" = null ]; then
 		if [ $attemptno -ge 3 ]; then
 			postToDiscord "There has been too much necromancy today, giving up until tomorrow."
@@ -35,14 +44,15 @@ function attempt {
 		attempt ${attemptno}
 		return
 	fi
-	temp=$(fetchData 'SELECT sum("Confirmed") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC' 0 0)
-	con2=$(fetchData 'SELECT sum("Confirmed") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 3d GROUP BY time(24h) fill(null) ORDER BY time DESC' 1 1)
-	con3=$(fetchData 'SELECT sum("Confirmed") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 9d GROUP BY time(24h) fill(null) ORDER BY time DESC' 7 1)
-	death=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC' 0 1)
-	death2=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 3d GROUP BY time(24h) fill(null) ORDER BY time DESC' 1 1)
-	death3=$(fetchData 'SELECT sum("Deaths") FROM "covid19"."autogen"."CoronaNew" WHERE "country"="United Kingdom" AND time >= now() - 9d GROUP BY time(24h) fill(null) ORDER BY time DESC' 7 1)
-	time="${temp%}"
-	time="${time#}"
+	temp=$(fetchData "SELECT sum(\"Confirmed\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC" 1 0)
+	con2=$(fetchData "SELECT sum(\"Confirmed\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 3d GROUP BY time(24h) fill(null) ORDER BY time DESC" 2 1)
+	con3=$(fetchData "SELECT sum(\"Confirmed\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 9d GROUP BY time(24h) fill(null) ORDER BY time DESC" 8 1)
+	death=$(fetchData "SELECT sum(\"Deaths\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 2d GROUP BY time(24h) fill(null) ORDER BY time DESC" 1 1)
+	death2=$(fetchData "SELECT sum(\"Deaths\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 3d GROUP BY time(24h) fill(null) ORDER BY time DESC" 2 1)
+	death3=$(fetchData "SELECT sum(\"Deaths\") FROM \"covid19\".\"autogen\".\"CoronaNew\" WHERE \"country\"='United Kingdom' AND time >= now() - 9d GROUP BY time(24h) fill(null) ORDER BY time DESC" 8 1)
+	
+	time=${temp%\"}
+	time=${time#\"}
 	
 	conInc=$(($con-$con2))
 	deathInc=$(($death-$death2))
